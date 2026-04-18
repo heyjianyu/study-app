@@ -1,0 +1,17 @@
+{
+  "name": "专升天刷题小助手",
+  "short_name": "专升天刷题",
+  "description": "成考专升本政治英语真实章节题与模拟卷刷题助手",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4efe5",
+  "theme_color": "#d4572d",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%23d4572d'/%3E%3Cpath d='M54 138V54h27l15 36 15-36h27v84h-21V90l-15 33H90L75 90v48z' fill='%23fff8f1'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

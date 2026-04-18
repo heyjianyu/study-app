@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#d4572d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="专升天刷题" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>专升本冲刺舱</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d4572d'/%3E%3Cpath d='M18 46V18h9l5 12 5-12h9v28h-7V30l-5 11h-4l-5-11v16z' fill='%23fff8f1'/%3E%3C/svg%3E"
+    />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <button id="installAppBtn" class="install-app hidden" type="button">安装到手机桌面</button>
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">崔建宇的成考专升本学习舱</p>
+          <h1>把真实课程数据，变成能一直刷到学霸线的训练场。</h1>
+          <p class="hero-text">
+            已接入你账号里的政治、英语课程目录和政治直播记录。下面可以看提醒、走学习路线、刷趣味题、重练错题。
+          </p>
+          <div class="hero-actions">
+            <button id="startQuizBtn" class="primary-btn">开始刷题</button>
+            <button id="wrongBookBtn" class="ghost-btn">只练错题</button>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="level-card">
+            <span class="level-label">当前段位</span>
+            <strong id="rankName">小白起步</strong>
+            <p id="rankText">先把课程框架吃透，再开始稳定刷题。</p>
+            <div class="xp-track">
+              <div id="xpBar" class="xp-fill"></div>
+            </div>
+            <div class="level-meta">
+              <span id="xpText">0 XP</span>
+              <span id="accuracyText">正确率 0%</span>
+            </div>
+          </div>
+          <div class="stat-grid">
+            <article>
+              <span>连续学习</span>
+              <strong id="streakText">0 天</strong>
+            </article>
+            <article>
+              <span>已掌握</span>
+              <strong id="masteredText">0 题</strong>
+            </article>
+            <article>
+              <span>错题本</span>
+              <strong id="wrongText">0 题</strong>
+            </article>
+            <article>
+              <span>今日建议</span>
+              <strong id="planText">政治 + 英语</strong>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <p class="eyebrow">真实拉取结果</p>
+          <h2>课程与直播提醒</h2>
+        </div>
+        <div id="courseBoard" class="course-board"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <p class="eyebrow">升级路线</p>
+          <h2>从小白到学霸的四段走法</h2>
+        </div>
+        <div id="roadmap" class="roadmap"></div>
+      </section>
+
+      <section class="section practice-zone">
+        <div class="section-heading">
+          <p class="eyebrow">趣味训练</p>
+          <h2>刷题引擎</h2>
+        </div>
+        <div class="practice-layout">
+          <aside class="practice-sidebar">
+            <div class="filter-card">
+              <label for="subjectFilter">科目</label>
+              <select id="subjectFilter">
+                <option value="all">政治 + 英语</option>
+                <option value="politics">政治</option>
+                <option value="english">英语</option>
+              </select>
+            </div>
+            <div class="filter-card">
+              <label for="levelFilter">难度</label>
+              <select id="levelFilter">
+                <option value="all">全部等级</option>
+                <option value="beginner">新手热身</option>
+                <option value="advanced">进阶提速</option>
+                <option value="master">学霸冲刺</option>
+              </select>
+            </div>
+            <div class="filter-card tips-card">
+              <h3>老师提醒压缩版</h3>
+              <ul id="tipList"></ul>
+            </div>
+          </aside>
+
+          <section class="quiz-card">
+            <div class="quiz-meta">
+              <span id="questionBadge">政治 · 新手热身</span>
+              <span id="queueCount">当前题库 0 题</span>
+            </div>
+            <h3 id="questionText">准备开始刷题。</h3>
+            <div id="options" class="options"></div>
+            <div id="feedback" class="feedback hidden"></div>
+            <div class="quiz-actions">
+              <button id="showAnswerBtn" class="ghost-btn">显示答案</button>
+              <button id="nextQuestionBtn" class="primary-btn">下一题</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <p class="eyebrow">复盘</p>
+          <h2>错题本与掌握度</h2>
+        </div>
+        <div class="review-grid">
+          <article class="review-card">
+            <h3>错题本</h3>
+            <div id="wrongBookList" class="review-list"></div>
+          </article>
+          <article class="review-card">
+            <h3>已掌握</h3>
+            <div id="masteredList" class="review-list"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="./src/app.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("./sw.js").catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

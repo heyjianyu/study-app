@@ -1,0 +1,401 @@
+const storageKey = "study-master-state-v2";
+const defaultState = {
+  xp: 0,
+  asked: 0,
+  correct: 0,
+  streak: 0,
+  lastStudyDate: "",
+  wrongBook: [],
+  mastered: [],
+};
+
+const rankRules = [
+  { maxXp: 99, name: "小白起步", text: "先把章节打通，再开始稳定刷题。" },
+  { maxXp: 239, name: "稳步上分", text: "你已经进入持续得分区间。" },
+  { maxXp: 479, name: "进阶选手", text: "现在该用整章和整卷把正确率抬上去。" },
+  { maxXp: Infinity, name: "冲刺学霸", text: "题感和节奏都到位了，重点只剩稳定发挥。" },
+];
+
+const state = loadState();
+let studyData = null;
+let allQuestions = [];
+let currentQuestion = null;
+let answerLocked = false;
+
+const rankName = document.querySelector("#rankName");
+const rankText = document.querySelector("#rankText");
+const xpBar = document.querySelector("#xpBar");
+const xpText = document.querySelector("#xpText");
+const accuracyText = document.querySelector("#accuracyText");
+const streakText = document.querySelector("#streakText");
+const masteredText = document.querySelector("#masteredText");
+const wrongText = document.querySelector("#wrongText");
+const planText = document.querySelector("#planText");
+const courseBoard = document.querySelector("#courseBoard");
+const roadmapContainer = document.querySelector("#roadmap");
+const subjectFilter = document.querySelector("#subjectFilter");
+const levelFilter = document.querySelector("#levelFilter");
+const tipList = document.querySelector("#tipList");
+const questionBadge = document.querySelector("#questionBadge");
+const queueCount = document.querySelector("#queueCount");
+const questionText = document.querySelector("#questionText");
+const options = document.querySelector("#options");
+const feedback = document.querySelector("#feedback");
+const wrongBookList = document.querySelector("#wrongBookList");
+const masteredList = document.querySelector("#masteredList");
+const startQuizBtn = document.querySelector("#startQuizBtn");
+const wrongBookBtn = document.querySelector("#wrongBookBtn");
+const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
+const showAnswerBtn = document.querySelector("#showAnswerBtn");
+const installAppBtn = document.querySelector("#installAppBtn");
+let deferredPrompt = null;
+
+const roadmap = [
+  {
+    stage: "01",
+    name: "章节打底",
+    text: "先按课程树把政治和英语过一遍，用章节题把陌生知识点打成认识。",
+  },
+  {
+    stage: "02",
+    name: "高频刷透",
+    text: "从错题率和低正确率题切入，优先补薄弱章，形成稳定正确率。",
+  },
+  {
+    stage: "03",
+    name: "整卷提速",
+    text: "穿插模拟考试与历年真题，把时间感、顺序感和答题节奏练出来。",
+  },
+  {
+    stage: "04",
+    name: "冲刺闭环",
+    text: "回炉错题、重复高频题、整卷冲刺，最后只保留提分动作。",
+  },
+];
+
+init();
+
+async function init() {
+  renderRoadmap();
+  renderDashboard();
+  bindEvents();
+  bindInstallPrompt();
+
+  questionText.textContent = "正在加载真实章节题库。";
+  questionBadge.textContent = "同步中";
+
+  const response = await fetch("./data/study-data.json");
+  studyData = await response.json();
+  allQuestions = [
+    ...studyData.subjects.politics.questions,
+    ...studyData.subjects.english.questions,
+  ];
+
+  renderCourseBoard();
+  renderTips();
+  renderDashboard();
+  loadNextQuestion();
+}
+
+function bindEvents() {
+  startQuizBtn.addEventListener("click", () => {
+    subjectFilter.value = "all";
+    levelFilter.value = "all";
+    loadNextQuestion();
+    window.scrollTo({ top: document.body.scrollHeight * 0.42, behavior: "smooth" });
+  });
+
+  wrongBookBtn.addEventListener("click", () => {
+    loadNextQuestion(true);
+    window.scrollTo({ top: document.body.scrollHeight * 0.42, behavior: "smooth" });
+  });
+
+  nextQuestionBtn.addEventListener("click", () => loadNextQuestion());
+  subjectFilter.addEventListener("change", () => loadNextQuestion());
+  levelFilter.addEventListener("change", () => loadNextQuestion());
+
+  showAnswerBtn.addEventListener("click", () => {
+    if (!currentQuestion || answerLocked) return;
+    revealAnswer(currentQuestion.answer, true);
+    addWrong(currentQuestion.id);
+    persistState();
+    renderDashboard();
+  });
+}
+
+function bindInstallPrompt() {
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    installAppBtn.classList.remove("hidden");
+  });
+
+  installAppBtn?.addEventListener("click", async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installAppBtn.classList.add("hidden");
+  });
+}
+
+function renderRoadmap() {
+  roadmapContainer.innerHTML = roadmap
+    .map(
+      (item) => `
+        <article class="timeline-step">
+          <span>${item.stage}</span>
+          <h3>${item.name}</h3>
+          <p>${item.text}</p>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderCourseBoard() {
+  const cards = Object.values(studyData.subjects).map((subject) => {
+    const moduleList = subject.modules
+      .map(
+        (module) => `
+          <article>
+            <strong>${module.name}</strong>
+            <div class="course-meta">${module.exerNum} 题 · ${module.children.length} 章</div>
+          </article>
+        `
+      )
+      .join("");
+
+    const mockList = subject.mocks
+      .slice(0, 6)
+      .map((exam) => `<span class="live-chip">${exam.title} · ${exam.exerNum} 题</span>`)
+      .join("");
+
+    return `
+      <article class="course-card">
+        <header>
+          <div>
+            <h3>${subject.courseName}</h3>
+            <p class="course-meta">有效期至 ${subject.validUntil} · 章节题 ${subject.totalQuestions} 道 · 模拟卷 ${subject.mocks.length} 套</p>
+          </div>
+          <span class="course-tag">${subject.label}</span>
+        </header>
+        <div class="course-summary">
+          <article>
+            <div class="module-count">模块总览</div>
+            <strong>${subject.moduleCount} 组模块</strong>
+            <div>章节总数 ${subject.modules.reduce((sum, item) => sum + item.children.length, 0)} 章</div>
+          </article>
+          <article>
+            <div class="module-count">模拟考试</div>
+            <strong>${subject.mocks.length} 套</strong>
+            <div>${mockList}</div>
+          </article>
+          <article>
+            <div class="module-count">学习提醒</div>
+            <div>${subject.reminders.map((item) => `<div>• ${item}</div>`).join("")}</div>
+          </article>
+          ${moduleList}
+        </div>
+      </article>
+    `;
+  });
+
+  courseBoard.innerHTML = cards.join("");
+}
+
+function renderTips() {
+  const tips = [
+    `当前真题总量 ${studyData.totals.questions} 道，先用章节题建立框架。`,
+    `政治章节题 ${studyData.totals.politicsQuestions} 道，政治模拟卷 ${studyData.totals.politicsMocks} 套。`,
+    `英语章节题 ${studyData.totals.englishQuestions} 道，英语模拟卷 ${studyData.totals.englishMocks} 套。`,
+    "先刷章节题，再冲模拟卷，最后回炉错题，这是效率最高的闭环。",
+  ];
+  tipList.innerHTML = tips.map((tip) => `<li>${tip}</li>`).join("");
+}
+
+function getLevel(question) {
+  if (!question) return "beginner";
+  if (question.practiceCount > 40000 || question.accuracy < 55) return "master";
+  if (question.practiceCount > 15000 || question.accuracy < 70) return "advanced";
+  return "beginner";
+}
+
+function getLabel(question) {
+  const levelMap = {
+    beginner: "新手热身",
+    advanced: "进阶提速",
+    master: "学霸冲刺",
+  };
+  return `${question.subjectLabel} · ${levelMap[getLevel(question)]}`;
+}
+
+function getQuestionQueue(onlyWrong = false) {
+  const subject = subjectFilter.value;
+  const level = levelFilter.value;
+
+  return allQuestions.filter((question) => {
+    if (onlyWrong && !state.wrongBook.includes(question.id)) return false;
+    if (subject !== "all" && question.subject !== subject) return false;
+    if (level !== "all" && getLevel(question) !== level) return false;
+    return true;
+  });
+}
+
+function loadNextQuestion(onlyWrong = false) {
+  if (!studyData) return;
+
+  const queue = getQuestionQueue(onlyWrong);
+  queueCount.textContent = `当前题库 ${queue.length} 题`;
+  feedback.classList.add("hidden");
+  feedback.innerHTML = "";
+  answerLocked = false;
+
+  if (!queue.length) {
+    currentQuestion = null;
+    questionBadge.textContent = onlyWrong ? "错题本为空" : "当前筛选无题";
+    questionText.textContent = onlyWrong
+      ? "你的错题本现在是空的，继续刷新题更划算。"
+      : "当前筛选条件下没有题，换个科目或难度继续。";
+    options.innerHTML = "";
+    return;
+  }
+
+  currentQuestion = queue[Math.floor(Math.random() * queue.length)];
+  questionBadge.textContent = `${getLabel(currentQuestion)} · ${currentQuestion.chapterName}`;
+  questionText.textContent = currentQuestion.prompt;
+
+  options.innerHTML = currentQuestion.options
+    .map(
+      (option) => `
+        <button class="option-btn" data-key="${option.key}">
+          ${option.key}. ${option.text}
+        </button>
+      `
+    )
+    .join("");
+
+  document.querySelectorAll(".option-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (answerLocked) return;
+      revealAnswer([button.dataset.key], false);
+    });
+  });
+}
+
+function revealAnswer(selectedKeys, forcedReveal) {
+  if (!currentQuestion) return;
+  answerLocked = true;
+  updateStreak();
+
+  const selectedSet = new Set(selectedKeys);
+  const answerSet = new Set(currentQuestion.answer);
+  const correct =
+    selectedSet.size === answerSet.size &&
+    [...selectedSet].every((key) => answerSet.has(key));
+
+  document.querySelectorAll(".option-btn").forEach((button) => {
+    const key = button.dataset.key;
+    if (answerSet.has(key)) button.classList.add("correct");
+    if (selectedSet.has(key) && !answerSet.has(key)) button.classList.add("wrong");
+  });
+
+  if (!forcedReveal) {
+    state.asked += 1;
+    if (correct) {
+      state.correct += 1;
+      state.xp += getLevel(currentQuestion) === "master" ? 24 : getLevel(currentQuestion) === "advanced" ? 16 : 10;
+      addMastered(currentQuestion.id);
+      removeWrong(currentQuestion.id);
+    } else {
+      state.xp += 2;
+      addWrong(currentQuestion.id);
+    }
+  }
+
+  feedback.classList.remove("hidden");
+  feedback.innerHTML = `
+    <strong>${forcedReveal ? "标准答案已显示" : correct ? "答对了" : "这题错了"}</strong>
+    <div>正确答案：${currentQuestion.answer.join("、")}</div>
+    <div>${currentQuestion.explanation || "本题暂无解析。"}</div>
+    <div class="course-meta">章节：${currentQuestion.linkName} · 历史作答 ${currentQuestion.practiceCount} 次 · 平均正确率 ${currentQuestion.accuracy}%</div>
+  `;
+
+  persistState();
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const accuracy = state.asked ? Math.round((state.correct / state.asked) * 100) : 0;
+  const rank = rankRules.find((item) => state.xp <= item.maxXp);
+  const barMax = rank.maxXp === Infinity ? 600 : rank.maxXp;
+  const progress = Math.min(100, Math.round((state.xp / barMax) * 100));
+
+  rankName.textContent = rank.name;
+  rankText.textContent = rank.text;
+  xpBar.style.width = `${progress}%`;
+  xpText.textContent = `${state.xp} XP`;
+  accuracyText.textContent = `正确率 ${accuracy}%`;
+  streakText.textContent = `${state.streak} 天`;
+  masteredText.textContent = `${state.mastered.length} 题`;
+  wrongText.textContent = `${state.wrongBook.length} 题`;
+
+  if (studyData) {
+    planText.textContent =
+      state.xp < 120
+        ? `先刷政治 ${studyData.totals.politicsQuestions} 题 + 英语 ${studyData.totals.englishQuestions} 题`
+        : "切整卷 + 错题回炉";
+  } else {
+    planText.textContent = "正在同步数据";
+  }
+
+  wrongBookList.innerHTML = state.wrongBook.length
+    ? state.wrongBook
+        .map((id) => allQuestions.find((item) => item.id === id))
+        .filter(Boolean)
+        .slice(0, 20)
+        .map((item) => `<span class="wrong-chip">${item.subjectLabel} · ${item.chapterName} · ${item.prompt}</span>`)
+        .join("")
+    : "还没有错题，继续保持。";
+
+  masteredList.innerHTML = state.mastered.length
+    ? state.mastered
+        .map((id) => allQuestions.find((item) => item.id === id))
+        .filter(Boolean)
+        .slice(0, 20)
+        .map((item) => `<span class="master-chip">${item.subjectLabel} · ${item.chapterName} · ${item.prompt}</span>`)
+        .join("")
+    : "还没有掌握题，先开始第一轮。";
+}
+
+function addWrong(id) {
+  if (!state.wrongBook.includes(id)) state.wrongBook.unshift(id);
+}
+
+function removeWrong(id) {
+  state.wrongBook = state.wrongBook.filter((item) => item !== id);
+}
+
+function addMastered(id) {
+  if (!state.mastered.includes(id)) state.mastered.unshift(id);
+}
+
+function loadState() {
+  try {
+    return { ...defaultState, ...JSON.parse(localStorage.getItem(storageKey) || "{}") };
+  } catch {
+    return { ...defaultState };
+  }
+}
+
+function persistState() {
+  localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (state.lastStudyDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  state.streak = state.lastStudyDate === yesterday ? state.streak + 1 : 1;
+  state.lastStudyDate = today;
+}
