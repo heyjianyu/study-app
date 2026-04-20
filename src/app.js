@@ -7,6 +7,8 @@ const defaultState = {
   lastStudyDate: "",
   wrongBook: [],
   mastered: [],
+  favorites: [],
+  autoNext: false,
 };
 
 const rankRules = [
@@ -15,47 +17,6 @@ const rankRules = [
   { maxXp: 479, name: "进阶选手", text: "现在该用整章和整卷把正确率抬上去。" },
   { maxXp: Infinity, name: "冲刺学霸", text: "题感和节奏都到位了，重点只剩稳定发挥。" },
 ];
-
-const state = loadState();
-let studyData = null;
-let allQuestions = [];
-let currentQuestion = null;
-let answerLocked = false;
-
-const rankName = document.querySelector("#rankName");
-const rankText = document.querySelector("#rankText");
-const xpBar = document.querySelector("#xpBar");
-const xpText = document.querySelector("#xpText");
-const accuracyText = document.querySelector("#accuracyText");
-const streakText = document.querySelector("#streakText");
-const masteredText = document.querySelector("#masteredText");
-const wrongText = document.querySelector("#wrongText");
-const planText = document.querySelector("#planText");
-const totalQuestionsText = document.querySelector("#totalQuestionsText");
-const totalMocksText = document.querySelector("#totalMocksText");
-const focusModeText = document.querySelector("#focusModeText");
-const paceText = document.querySelector("#paceText");
-const courseBoard = document.querySelector("#courseBoard");
-const roadmapContainer = document.querySelector("#roadmap");
-const subjectFilter = document.querySelector("#subjectFilter");
-const levelFilter = document.querySelector("#levelFilter");
-const tipList = document.querySelector("#tipList");
-const questionBadge = document.querySelector("#questionBadge");
-const queueCount = document.querySelector("#queueCount");
-const questionText = document.querySelector("#questionText");
-const options = document.querySelector("#options");
-const feedback = document.querySelector("#feedback");
-const wrongBookList = document.querySelector("#wrongBookList");
-const masteredList = document.querySelector("#masteredList");
-const startQuizBtn = document.querySelector("#startQuizBtn");
-const wrongBookBtn = document.querySelector("#wrongBookBtn");
-const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
-const showAnswerBtn = document.querySelector("#showAnswerBtn");
-const installAppBtn = document.querySelector("#installAppBtn");
-const jumpAllBtn = document.querySelector("#jumpAllBtn");
-const jumpPoliticsBtn = document.querySelector("#jumpPoliticsBtn");
-const jumpEnglishBtn = document.querySelector("#jumpEnglishBtn");
-let deferredPrompt = null;
 
 const roadmap = [
   {
@@ -80,6 +41,53 @@ const roadmap = [
   },
 ];
 
+const state = loadState();
+let studyData = null;
+let allQuestions = [];
+let currentQuestion = null;
+let answerLocked = false;
+
+const rankName = document.querySelector("#rankName");
+const rankText = document.querySelector("#rankText");
+const xpBar = document.querySelector("#xpBar");
+const xpText = document.querySelector("#xpText");
+const accuracyText = document.querySelector("#accuracyText");
+const streakText = document.querySelector("#streakText");
+const masteredText = document.querySelector("#masteredText");
+const wrongText = document.querySelector("#wrongText");
+const planText = document.querySelector("#planText");
+const totalQuestionsText = document.querySelector("#totalQuestionsText");
+const totalMocksText = document.querySelector("#totalMocksText");
+const focusModeText = document.querySelector("#focusModeText");
+const paceText = document.querySelector("#paceText");
+const courseBoard = document.querySelector("#courseBoard");
+const chapterHub = document.querySelector("#chapterHub");
+const mockHub = document.querySelector("#mockHub");
+const roadmapContainer = document.querySelector("#roadmap");
+const subjectFilter = document.querySelector("#subjectFilter");
+const levelFilter = document.querySelector("#levelFilter");
+const chapterFilter = document.querySelector("#chapterFilter");
+const tipList = document.querySelector("#tipList");
+const questionBadge = document.querySelector("#questionBadge");
+const queueCount = document.querySelector("#queueCount");
+const questionText = document.querySelector("#questionText");
+const options = document.querySelector("#options");
+const feedback = document.querySelector("#feedback");
+const wrongBookList = document.querySelector("#wrongBookList");
+const masteredList = document.querySelector("#masteredList");
+const favoriteList = document.querySelector("#favoriteList");
+const startQuizBtn = document.querySelector("#startQuizBtn");
+const wrongBookBtn = document.querySelector("#wrongBookBtn");
+const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
+const showAnswerBtn = document.querySelector("#showAnswerBtn");
+const favoriteBtn = document.querySelector("#favoriteBtn");
+const autoNextToggle = document.querySelector("#autoNextToggle");
+const installAppBtn = document.querySelector("#installAppBtn");
+const jumpAllBtn = document.querySelector("#jumpAllBtn");
+const jumpPoliticsBtn = document.querySelector("#jumpPoliticsBtn");
+const jumpEnglishBtn = document.querySelector("#jumpEnglishBtn");
+let deferredPrompt = null;
+
 init();
 
 async function init() {
@@ -99,18 +107,16 @@ async function init() {
   ];
 
   renderCourseBoard();
+  renderHubCards();
   renderTips();
+  renderChapterFilterOptions();
   renderDashboard();
   loadNextQuestion();
 }
 
 function bindEvents() {
   startQuizBtn.addEventListener("click", () => {
-    subjectFilter.value = "all";
-    levelFilter.value = "all";
-    syncQuickSwitch("all");
-    loadNextQuestion();
-    scrollToPractice();
+    applyPreset("all");
   });
 
   wrongBookBtn.addEventListener("click", () => {
@@ -121,9 +127,11 @@ function bindEvents() {
   nextQuestionBtn.addEventListener("click", () => loadNextQuestion());
   subjectFilter.addEventListener("change", () => {
     syncQuickSwitch(subjectFilter.value);
+    renderChapterFilterOptions();
     loadNextQuestion();
   });
   levelFilter.addEventListener("change", () => loadNextQuestion());
+  chapterFilter.addEventListener("change", () => loadNextQuestion());
 
   jumpAllBtn?.addEventListener("click", () => applyPreset("all"));
   jumpPoliticsBtn?.addEventListener("click", () => applyPreset("politics"));
@@ -135,6 +143,19 @@ function bindEvents() {
     addWrong(currentQuestion.id);
     persistState();
     renderDashboard();
+  });
+
+  favoriteBtn?.addEventListener("click", () => {
+    if (!currentQuestion) return;
+    toggleFavorite(currentQuestion.id);
+    persistState();
+    updateFavoriteButton();
+    renderDashboard();
+  });
+
+  autoNextToggle?.addEventListener("change", () => {
+    state.autoNext = autoNextToggle.checked;
+    persistState();
   });
 }
 
@@ -158,6 +179,28 @@ function applyPreset(subject) {
   subjectFilter.value = subject;
   levelFilter.value = "all";
   syncQuickSwitch(subject);
+  renderChapterFilterOptions();
+  chapterFilter.value = "all";
+  loadNextQuestion();
+  scrollToPractice();
+}
+
+function startChapterRun(subject, chapterId) {
+  subjectFilter.value = subject;
+  levelFilter.value = "all";
+  syncQuickSwitch(subject);
+  renderChapterFilterOptions();
+  chapterFilter.value = chapterId;
+  loadNextQuestion();
+  scrollToPractice();
+}
+
+function startMockRun(subject) {
+  subjectFilter.value = subject;
+  levelFilter.value = "master";
+  syncQuickSwitch(subject);
+  renderChapterFilterOptions();
+  chapterFilter.value = "all";
   loadNextQuestion();
   scrollToPractice();
 }
@@ -242,6 +285,49 @@ function renderCourseBoard() {
   courseBoard.innerHTML = cards.join("");
 }
 
+function renderHubCards() {
+  const chapterCards = Object.entries(studyData.subjects).map(([key, subject]) => {
+    const firstChapter = getAvailableChapters(key)[0];
+    return `
+      <article class="hub-card">
+        <p class="mini-label">${subject.label}章节入口</p>
+        <h3>${subject.courseName}</h3>
+        <p>${getAvailableChapters(key).length} 个可刷章节 · ${subject.totalQuestions} 道题</p>
+        <div class="hub-meta">
+          <span>${firstChapter?.name || "等待补齐章节"}</span>
+          <span>${firstChapter?.exerNum || 0} 题</span>
+        </div>
+        <button class="primary-btn hub-btn" data-action="chapter" data-subject="${key}" data-chapter="${firstChapter?.id || ""}">开始本章</button>
+      </article>
+    `;
+  });
+
+  const mockCards = Object.entries(studyData.subjects).map(([key, subject]) => `
+    <article class="hub-card soft-card">
+      <p class="mini-label">${subject.label}模拟卷</p>
+      <h3>${subject.mocks[0]?.title || `${subject.label}模拟卷`}</h3>
+      <p>${subject.mocks.length} 套卷单已同步，可以先从卷单切入冲刺模式。</p>
+      <div class="hub-list">
+        ${subject.mocks.slice(0, 3).map((mock) => `<span class="live-chip">${mock.title}</span>`).join("")}
+      </div>
+      <div class="hub-actions">
+        <button class="primary-btn hub-btn" data-action="mock" data-subject="${key}">冲刺模式</button>
+      </div>
+    </article>
+  `);
+
+  chapterHub.innerHTML = chapterCards.join("");
+  mockHub.innerHTML = mockCards.join("");
+
+  document.querySelectorAll(".hub-btn").forEach((button) => {
+    button.addEventListener("click", () => {
+      const { action, subject, chapter } = button.dataset;
+      if (action === "chapter" && chapter) startChapterRun(subject, chapter);
+      if (action === "mock") startMockRun(subject);
+    });
+  });
+}
+
 function renderTips() {
   const tips = [
     `当前真题总量 ${studyData.totals.questions} 道，先用章节题建立框架。`,
@@ -250,6 +336,33 @@ function renderTips() {
     "先刷章节题，再冲模拟卷，最后回炉错题，这是效率最高的闭环。",
   ];
   tipList.innerHTML = tips.map((tip) => `<li>${tip}</li>`).join("");
+}
+
+function renderChapterFilterOptions() {
+  if (!studyData) return;
+  const subject = subjectFilter.value;
+  const chapters =
+    subject === "all"
+      ? ["politics", "english"].flatMap((key) =>
+          getAvailableChapters(key).map((chapter) => ({
+            id: chapter.id,
+            name: `${studyData.subjects[key].label} · ${chapter.name}`,
+          }))
+        )
+      : getAvailableChapters(subject).map((chapter) => ({ id: chapter.id, name: chapter.name }));
+
+  const previous = chapterFilter.value;
+  chapterFilter.innerHTML = [
+    `<option value="all">全部章节</option>`,
+    ...chapters.map((chapter) => `<option value="${chapter.id}">${chapter.name}</option>`),
+  ].join("");
+  chapterFilter.value = chapters.some((chapter) => chapter.id === previous) ? previous : "all";
+}
+
+function getAvailableChapters(subject) {
+  return studyData.subjects[subject].modules.flatMap((module) =>
+    module.children.filter((chapter) => chapter.exerNum > 0)
+  );
 }
 
 function getLevel(question) {
@@ -271,11 +384,13 @@ function getLabel(question) {
 function getQuestionQueue(onlyWrong = false) {
   const subject = subjectFilter.value;
   const level = levelFilter.value;
+  const chapter = chapterFilter.value;
 
   return allQuestions.filter((question) => {
     if (onlyWrong && !state.wrongBook.includes(question.id)) return false;
     if (subject !== "all" && question.subject !== subject) return false;
     if (level !== "all" && getLevel(question) !== level) return false;
+    if (chapter !== "all" && question.chapterId !== chapter) return false;
     return true;
   });
 }
@@ -296,12 +411,14 @@ function loadNextQuestion(onlyWrong = false) {
       ? "你的错题本现在是空的，继续刷新题更划算。"
       : "当前筛选条件下没有题，换个科目或难度继续。";
     options.innerHTML = "";
+    updateFavoriteButton();
     return;
   }
 
   currentQuestion = queue[Math.floor(Math.random() * queue.length)];
   questionBadge.textContent = `${getLabel(currentQuestion)} · ${currentQuestion.chapterName}`;
-  questionText.textContent = currentQuestion.prompt;
+  questionText.innerHTML = currentQuestion.prompt;
+  updateFavoriteButton();
 
   options.innerHTML = currentQuestion.options
     .map(
@@ -361,6 +478,10 @@ function revealAnswer(selectedKeys, forcedReveal) {
 
   persistState();
   renderDashboard();
+
+  if (!forcedReveal && state.autoNext) {
+    window.setTimeout(() => loadNextQuestion(), 900);
+  }
 }
 
 function renderDashboard() {
@@ -377,6 +498,7 @@ function renderDashboard() {
   streakText.textContent = `${state.streak} 天`;
   masteredText.textContent = `${state.mastered.length} 题`;
   wrongText.textContent = `${state.wrongBook.length} 题`;
+  autoNextToggle.checked = Boolean(state.autoNext);
 
   if (studyData) {
     planText.textContent =
@@ -407,7 +529,7 @@ function renderDashboard() {
         .map((id) => allQuestions.find((item) => item.id === id))
         .filter(Boolean)
         .slice(0, 20)
-        .map((item) => `<span class="wrong-chip">${item.subjectLabel} · ${item.chapterName} · ${item.prompt}</span>`)
+        .map((item) => `<span class="wrong-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
         .join("")
     : "还没有错题，继续保持。";
 
@@ -416,9 +538,18 @@ function renderDashboard() {
         .map((id) => allQuestions.find((item) => item.id === id))
         .filter(Boolean)
         .slice(0, 20)
-        .map((item) => `<span class="master-chip">${item.subjectLabel} · ${item.chapterName} · ${item.prompt}</span>`)
+        .map((item) => `<span class="master-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
         .join("")
     : "还没有掌握题，先开始第一轮。";
+
+  favoriteList.innerHTML = state.favorites.length
+    ? state.favorites
+        .map((id) => allQuestions.find((item) => item.id === id))
+        .filter(Boolean)
+        .slice(0, 20)
+        .map((item) => `<span class="live-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
+        .join("")
+    : "收藏几道高频题，后面回看更快。";
 }
 
 function addWrong(id) {
@@ -431,6 +562,27 @@ function removeWrong(id) {
 
 function addMastered(id) {
   if (!state.mastered.includes(id)) state.mastered.unshift(id);
+}
+
+function toggleFavorite(id) {
+  if (state.favorites.includes(id)) {
+    state.favorites = state.favorites.filter((item) => item !== id);
+    return;
+  }
+  state.favorites.unshift(id);
+}
+
+function updateFavoriteButton() {
+  if (!favoriteBtn) return;
+  if (!currentQuestion) {
+    favoriteBtn.textContent = "收藏本题";
+    return;
+  }
+  favoriteBtn.textContent = state.favorites.includes(currentQuestion.id) ? "取消收藏" : "收藏本题";
+}
+
+function stripHtml(text) {
+  return String(text).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
 }
 
 function loadState() {

@@ -99,6 +99,17 @@
         </div>
       </section>
 
+      <section class="section hub-section">
+        <div class="section-heading">
+          <p class="eyebrow">直达入口</p>
+          <h2>章节练习与模拟卷单</h2>
+        </div>
+        <div class="hub-grid">
+          <div id="chapterHub" class="hub-cards"></div>
+          <div id="mockHub" class="hub-cards"></div>
+        </div>
+      </section>
+
       <section class="section practice-zone">
         <div class="section-heading">
           <p class="eyebrow">主训练区</p>
@@ -131,6 +142,13 @@
               </select>
             </div>
 
+            <div class="filter-card">
+              <label for="chapterFilter">章节</label>
+              <select id="chapterFilter">
+                <option value="all">全部章节</option>
+              </select>
+            </div>
+
             <div class="filter-card tips-card">
               <h3>速刷提示</h3>
               <ul id="tipList"></ul>
@@ -146,9 +164,14 @@
             <div id="options" class="options"></div>
             <div id="feedback" class="feedback hidden"></div>
             <div class="quiz-actions">
+              <button id="favoriteBtn" class="ghost-btn" type="button">收藏本题</button>
               <button id="showAnswerBtn" class="ghost-btn">显示答案</button>
               <button id="nextQuestionBtn" class="primary-btn">下一题</button>
             </div>
+            <label class="auto-next-toggle">
+              <input id="autoNextToggle" type="checkbox" />
+              <span>答题后自动连刷下一题</span>
+            </label>
           </section>
         </div>
       </section>
@@ -183,6 +206,10 @@
           <article class="review-card">
             <h3>已掌握</h3>
             <div id="masteredList" class="review-list"></div>
+          </article>
+          <article class="review-card">
+            <h3>收藏夹</h3>
+            <div id="favoriteList" class="review-list"></div>
           </article>
         </div>
       </section>
