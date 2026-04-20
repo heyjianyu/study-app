@@ -237,6 +237,7 @@ function scrollToPractice() {
 }
 
 function renderRoadmap() {
+  if (!roadmapContainer) return;
   roadmapContainer.innerHTML = roadmap
     .map(
       (item) => `
@@ -251,6 +252,7 @@ function renderRoadmap() {
 }
 
 function renderCourseBoard() {
+  if (!courseBoard) return;
   const cards = Object.values(studyData.subjects).map((subject) => {
     const moduleList = subject.modules
       .map(
@@ -302,6 +304,7 @@ function renderCourseBoard() {
 }
 
 function renderHubCards() {
+  if (!chapterHub || !mockHub) return;
   const chapterCards = Object.entries(studyData.subjects).map(([key, subject]) => {
     const firstChapter = getAvailableChapters(key)[0];
     return `
