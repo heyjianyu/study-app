@@ -46,6 +46,7 @@ let studyData = null;
 let allQuestions = [];
 let currentQuestion = null;
 let answerLocked = false;
+let pinnedQuestionId = "";
 
 const rankName = document.querySelector("#rankName");
 const rankText = document.querySelector("#rankText");
@@ -201,7 +202,22 @@ function startMockRun(subject) {
   syncQuickSwitch(subject);
   renderChapterFilterOptions();
   chapterFilter.value = "all";
+  pinnedQuestionId = "";
   loadNextQuestion();
+  scrollToPractice();
+}
+
+function openQuestionById(id) {
+  const question = allQuestions.find((item) => item.id === id);
+  if (!question) return;
+
+  subjectFilter.value = question.subject;
+  levelFilter.value = "all";
+  syncQuickSwitch(question.subject);
+  renderChapterFilterOptions();
+  chapterFilter.value = question.chapterId;
+  queueCount.textContent = `当前题库 ${getQuestionQueue(false).length} 题`;
+  renderQuestion(question);
   scrollToPractice();
 }
 
@@ -310,7 +326,20 @@ function renderHubCards() {
       <div class="hub-list">
         ${subject.mocks.slice(0, 3).map((mock) => `<span class="live-chip">${mock.title}</span>`).join("")}
       </div>
+      <div class="mock-list collapsed" id="mock-list-${key}">
+        ${subject.mocks
+          .map(
+            (mock) => `
+              <button class="mock-item" type="button" data-action="mock" data-subject="${key}">
+                <strong>${mock.title}</strong>
+                <span>${mock.type || "模拟卷"} · ${mock.exerNum} 题 · ${mock.totalScore} 分</span>
+              </button>
+            `
+          )
+          .join("")}
+      </div>
       <div class="hub-actions">
+        <button class="ghost-btn hub-btn" data-action="toggle-mocks" data-target="mock-list-${key}">展开卷单</button>
         <button class="primary-btn hub-btn" data-action="mock" data-subject="${key}">冲刺模式</button>
       </div>
     </article>
@@ -324,6 +353,11 @@ function renderHubCards() {
       const { action, subject, chapter } = button.dataset;
       if (action === "chapter" && chapter) startChapterRun(subject, chapter);
       if (action === "mock") startMockRun(subject);
+      if (action === "toggle-mocks") {
+        const target = document.getElementById(button.dataset.target);
+        const collapsed = target?.classList.toggle("collapsed");
+        button.textContent = collapsed ? "展开卷单" : "收起卷单";
+      }
     });
   });
 }
@@ -415,7 +449,20 @@ function loadNextQuestion(onlyWrong = false) {
     return;
   }
 
-  currentQuestion = queue[Math.floor(Math.random() * queue.length)];
+  if (pinnedQuestionId) {
+    const pinnedQuestion = queue.find((item) => item.id === pinnedQuestionId);
+    pinnedQuestionId = "";
+    if (pinnedQuestion) {
+      renderQuestion(pinnedQuestion);
+      return;
+    }
+  }
+
+  renderQuestion(queue[Math.floor(Math.random() * queue.length)]);
+}
+
+function renderQuestion(question) {
+  currentQuestion = question;
   questionBadge.textContent = `${getLabel(currentQuestion)} · ${currentQuestion.chapterName}`;
   questionText.innerHTML = currentQuestion.prompt;
   updateFavoriteButton();
@@ -525,31 +572,18 @@ function renderDashboard() {
   }
 
   wrongBookList.innerHTML = state.wrongBook.length
-    ? state.wrongBook
-        .map((id) => allQuestions.find((item) => item.id === id))
-        .filter(Boolean)
-        .slice(0, 20)
-        .map((item) => `<span class="wrong-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
-        .join("")
+    ? renderReviewButtons(state.wrongBook, "wrong-chip")
     : "还没有错题，继续保持。";
 
   masteredList.innerHTML = state.mastered.length
-    ? state.mastered
-        .map((id) => allQuestions.find((item) => item.id === id))
-        .filter(Boolean)
-        .slice(0, 20)
-        .map((item) => `<span class="master-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
-        .join("")
+    ? renderReviewButtons(state.mastered, "master-chip")
     : "还没有掌握题，先开始第一轮。";
 
   favoriteList.innerHTML = state.favorites.length
-    ? state.favorites
-        .map((id) => allQuestions.find((item) => item.id === id))
-        .filter(Boolean)
-        .slice(0, 20)
-        .map((item) => `<span class="live-chip">${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}</span>`)
-        .join("")
+    ? renderReviewButtons(state.favorites, "live-chip")
     : "收藏几道高频题，后面回看更快。";
+
+  bindReviewActions();
 }
 
 function addWrong(id) {
@@ -583,6 +617,29 @@ function updateFavoriteButton() {
 
 function stripHtml(text) {
   return String(text).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function renderReviewButtons(ids, className) {
+  return ids
+    .map((id) => allQuestions.find((item) => item.id === id))
+    .filter(Boolean)
+    .slice(0, 20)
+    .map(
+      (item) => `
+        <button class="${className} review-action" type="button" data-question-id="${item.id}">
+          ${item.subjectLabel} · ${item.chapterName} · ${stripHtml(item.prompt)}
+        </button>
+      `
+    )
+    .join("");
+}
+
+function bindReviewActions() {
+  document.querySelectorAll(".review-action").forEach((button) => {
+    button.addEventListener("click", () => {
+      openQuestionById(button.dataset.questionId);
+    });
+  });
 }
 
 function loadState() {
