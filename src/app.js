@@ -31,6 +31,10 @@ const streakText = document.querySelector("#streakText");
 const masteredText = document.querySelector("#masteredText");
 const wrongText = document.querySelector("#wrongText");
 const planText = document.querySelector("#planText");
+const totalQuestionsText = document.querySelector("#totalQuestionsText");
+const totalMocksText = document.querySelector("#totalMocksText");
+const focusModeText = document.querySelector("#focusModeText");
+const paceText = document.querySelector("#paceText");
 const courseBoard = document.querySelector("#courseBoard");
 const roadmapContainer = document.querySelector("#roadmap");
 const subjectFilter = document.querySelector("#subjectFilter");
@@ -48,6 +52,9 @@ const wrongBookBtn = document.querySelector("#wrongBookBtn");
 const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
 const showAnswerBtn = document.querySelector("#showAnswerBtn");
 const installAppBtn = document.querySelector("#installAppBtn");
+const jumpAllBtn = document.querySelector("#jumpAllBtn");
+const jumpPoliticsBtn = document.querySelector("#jumpPoliticsBtn");
+const jumpEnglishBtn = document.querySelector("#jumpEnglishBtn");
 let deferredPrompt = null;
 
 const roadmap = [
@@ -101,18 +108,26 @@ function bindEvents() {
   startQuizBtn.addEventListener("click", () => {
     subjectFilter.value = "all";
     levelFilter.value = "all";
+    syncQuickSwitch("all");
     loadNextQuestion();
-    window.scrollTo({ top: document.body.scrollHeight * 0.42, behavior: "smooth" });
+    scrollToPractice();
   });
 
   wrongBookBtn.addEventListener("click", () => {
     loadNextQuestion(true);
-    window.scrollTo({ top: document.body.scrollHeight * 0.42, behavior: "smooth" });
+    scrollToPractice();
   });
 
   nextQuestionBtn.addEventListener("click", () => loadNextQuestion());
-  subjectFilter.addEventListener("change", () => loadNextQuestion());
+  subjectFilter.addEventListener("change", () => {
+    syncQuickSwitch(subjectFilter.value);
+    loadNextQuestion();
+  });
   levelFilter.addEventListener("change", () => loadNextQuestion());
+
+  jumpAllBtn?.addEventListener("click", () => applyPreset("all"));
+  jumpPoliticsBtn?.addEventListener("click", () => applyPreset("politics"));
+  jumpEnglishBtn?.addEventListener("click", () => applyPreset("english"));
 
   showAnswerBtn.addEventListener("click", () => {
     if (!currentQuestion || answerLocked) return;
@@ -137,6 +152,29 @@ function bindInstallPrompt() {
     deferredPrompt = null;
     installAppBtn.classList.add("hidden");
   });
+}
+
+function applyPreset(subject) {
+  subjectFilter.value = subject;
+  levelFilter.value = "all";
+  syncQuickSwitch(subject);
+  loadNextQuestion();
+  scrollToPractice();
+}
+
+function syncQuickSwitch(subject) {
+  const map = {
+    all: jumpAllBtn,
+    politics: jumpPoliticsBtn,
+    english: jumpEnglishBtn,
+  };
+
+  [jumpAllBtn, jumpPoliticsBtn, jumpEnglishBtn].forEach((button) => button?.classList.remove("is-active"));
+  map[subject]?.classList.add("is-active");
+}
+
+function scrollToPractice() {
+  document.querySelector(".practice-zone")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderRoadmap() {
@@ -345,8 +383,23 @@ function renderDashboard() {
       state.xp < 120
         ? `先刷政治 ${studyData.totals.politicsQuestions} 题 + 英语 ${studyData.totals.englishQuestions} 题`
         : "切整卷 + 错题回炉";
+
+    totalQuestionsText.textContent = `${studyData.totals.questions} 题`;
+    totalMocksText.textContent = `${studyData.totals.politicsMocks + studyData.totals.englishMocks} 套`;
+    focusModeText.textContent =
+      state.wrongBook.length > 0
+        ? `先回 ${Math.min(state.wrongBook.length, 20)} 道错题`
+        : state.xp < 120
+          ? "双科章节热身"
+          : "开始整卷冲刺";
+    paceText.textContent =
+      accuracy < 60 ? "先稳正确率" : accuracy < 80 ? "开始提速刷题" : "切整卷稳节奏";
   } else {
     planText.textContent = "正在同步数据";
+    totalQuestionsText.textContent = "同步中";
+    totalMocksText.textContent = "同步中";
+    focusModeText.textContent = "准备同步";
+    paceText.textContent = "先章节，再错题，再整卷";
   }
 
   wrongBookList.innerHTML = state.wrongBook.length

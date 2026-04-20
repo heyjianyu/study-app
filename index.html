@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#d4572d" />
+    <meta name="theme-color" content="#2b6fff" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="专升天刷题" />
     <meta name="format-detection" content="telephone=no" />
-    <title>专升本冲刺舱</title>
+    <title>专升天刷题</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d4572d'/%3E%3Cpath d='M18 46V18h9l5 12 5-12h9v28h-7V30l-5 11h-4l-5-11v16z' fill='%23fff8f1'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232b6fff'/%3E%3Cpath d='M17 45V19h11l4 9 4-9h11v26h-8V31l-5 10h-4l-5-10v14z' fill='white'/%3E%3C/svg%3E"
     />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="stylesheet" href="./src/styles.css" />
@@ -23,21 +23,44 @@
     <main class="app-shell">
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">崔建宇的成考专升本学习舱</p>
-          <h1>把真实课程数据，变成能一直刷到学霸线的训练场。</h1>
+          <div class="hero-topline">
+            <p class="eyebrow">HeyJianyu 的专升本刷题站</p>
+            <span class="hero-chip">蓝白轻量版</span>
+          </div>
+          <h1>把真实章节题和模拟卷，收成一个更适合天天打开的刷题首页。</h1>
           <p class="hero-text">
-            已接入你账号里的政治、英语课程目录和政治直播记录。下面可以看提醒、走学习路线、刷趣味题、重练错题。
+            已接入你账号里的政治、英语真实题库。现在重点不是堆信息，而是让你在手机上打开就能马上练章节、刷错题、切模拟。
           </p>
           <div class="hero-actions">
-            <button id="startQuizBtn" class="primary-btn">开始刷题</button>
-            <button id="wrongBookBtn" class="ghost-btn">只练错题</button>
+            <button id="startQuizBtn" class="primary-btn">立即开刷</button>
+            <button id="wrongBookBtn" class="ghost-btn">重练错题</button>
+          </div>
+          <div class="quick-switches">
+            <button id="jumpAllBtn" class="quick-switch is-active" type="button">双科混刷</button>
+            <button id="jumpPoliticsBtn" class="quick-switch" type="button">主攻政治</button>
+            <button id="jumpEnglishBtn" class="quick-switch" type="button">主攻英语</button>
+          </div>
+          <div class="hero-highlights">
+            <article class="hero-highlight">
+              <span>总题量</span>
+              <strong id="totalQuestionsText">加载中</strong>
+            </article>
+            <article class="hero-highlight">
+              <span>模拟卷</span>
+              <strong id="totalMocksText">加载中</strong>
+            </article>
+            <article class="hero-highlight">
+              <span>今天建议</span>
+              <strong id="focusModeText">准备同步</strong>
+            </article>
           </div>
         </div>
+
         <div class="hero-panel">
           <div class="level-card">
             <span class="level-label">当前段位</span>
             <strong id="rankName">小白起步</strong>
-            <p id="rankText">先把课程框架吃透，再开始稳定刷题。</p>
+            <p id="rankText">先把章节打通，再开始稳定刷题。</p>
             <div class="xp-track">
               <div id="xpBar" class="xp-fill"></div>
             </div>
@@ -46,6 +69,7 @@
               <span id="accuracyText">正确率 0%</span>
             </div>
           </div>
+
           <div class="stat-grid">
             <article>
               <span>连续学习</span>
@@ -64,32 +88,30 @@
               <strong id="planText">政治 + 英语</strong>
             </article>
           </div>
-        </div>
-      </section>
 
-      <section class="section">
-        <div class="section-heading">
-          <p class="eyebrow">真实拉取结果</p>
-          <h2>课程与直播提醒</h2>
+          <div class="pulse-card">
+            <div>
+              <span class="pulse-label">今日节奏</span>
+              <strong id="paceText">先章节，再错题，再整卷</strong>
+            </div>
+            <p>建议先做 10 道章节题热身，再切错题，最后用一套模拟卷收尾。</p>
+          </div>
         </div>
-        <div id="courseBoard" class="course-board"></div>
-      </section>
-
-      <section class="section">
-        <div class="section-heading">
-          <p class="eyebrow">升级路线</p>
-          <h2>从小白到学霸的四段走法</h2>
-        </div>
-        <div id="roadmap" class="roadmap"></div>
       </section>
 
       <section class="section practice-zone">
         <div class="section-heading">
-          <p class="eyebrow">趣味训练</p>
+          <p class="eyebrow">主训练区</p>
           <h2>刷题引擎</h2>
         </div>
         <div class="practice-layout">
           <aside class="practice-sidebar">
+            <div class="filter-card overview-card">
+              <span class="mini-label">当前题库</span>
+              <strong id="queueCount">当前题库 0 题</strong>
+              <p>切换科目和难度后，会直接从真实章节题里随机抽题。</p>
+            </div>
+
             <div class="filter-card">
               <label for="subjectFilter">科目</label>
               <select id="subjectFilter">
@@ -98,6 +120,7 @@
                 <option value="english">英语</option>
               </select>
             </div>
+
             <div class="filter-card">
               <label for="levelFilter">难度</label>
               <select id="levelFilter">
@@ -107,8 +130,9 @@
                 <option value="master">学霸冲刺</option>
               </select>
             </div>
+
             <div class="filter-card tips-card">
-              <h3>老师提醒压缩版</h3>
+              <h3>速刷提示</h3>
               <ul id="tipList"></ul>
             </div>
           </aside>
@@ -116,7 +140,7 @@
           <section class="quiz-card">
             <div class="quiz-meta">
               <span id="questionBadge">政治 · 新手热身</span>
-              <span id="queueCount">当前题库 0 题</span>
+              <span class="quiz-meta-soft">点击选项后立即判定</span>
             </div>
             <h3 id="questionText">准备开始刷题。</h3>
             <div id="options" class="options"></div>
@@ -126,6 +150,23 @@
               <button id="nextQuestionBtn" class="primary-btn">下一题</button>
             </div>
           </section>
+        </div>
+      </section>
+
+      <section class="section section-split">
+        <div>
+          <div class="section-heading">
+            <p class="eyebrow">真实拉取结果</p>
+            <h2>课程与提醒</h2>
+          </div>
+          <div id="courseBoard" class="course-board"></div>
+        </div>
+        <div>
+          <div class="section-heading">
+            <p class="eyebrow">升级路线</p>
+            <h2>从小白到学霸</h2>
+          </div>
+          <div id="roadmap" class="roadmap"></div>
         </div>
       </section>
 
