@@ -659,8 +659,8 @@ select {
 
 .quiz-card h3 {
   margin-top: 0;
-  font-size: clamp(1.45rem, 3vw, 2.05rem);
-  line-height: 1.5;
+  font-size: clamp(1.12rem, 2.2vw, 1.48rem);
+  line-height: 1.7;
 }
 
 .question-stage {
