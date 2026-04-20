@@ -47,6 +47,13 @@ let allQuestions = [];
 let currentQuestion = null;
 let answerLocked = false;
 let pinnedQuestionId = "";
+let sessionState = {
+  mode: "mixed",
+  total: 0,
+  done: 0,
+  correct: 0,
+  onlyWrong: false,
+};
 
 const rankName = document.querySelector("#rankName");
 const rankText = document.querySelector("#rankText");
@@ -71,7 +78,13 @@ const chapterFilter = document.querySelector("#chapterFilter");
 const tipList = document.querySelector("#tipList");
 const questionBadge = document.querySelector("#questionBadge");
 const queueCount = document.querySelector("#queueCount");
+const sessionModeText = document.querySelector("#sessionModeText");
+const sessionProgressText = document.querySelector("#sessionProgressText");
+const sessionAccuracyText = document.querySelector("#sessionAccuracyText");
+const sessionProgressBar = document.querySelector("#sessionProgressBar");
+const questionStage = document.querySelector("#questionStage");
 const questionText = document.querySelector("#questionText");
+const chapterHint = document.querySelector("#chapterHint");
 const options = document.querySelector("#options");
 const feedback = document.querySelector("#feedback");
 const wrongBookList = document.querySelector("#wrongBookList");
@@ -79,6 +92,7 @@ const masteredList = document.querySelector("#masteredList");
 const favoriteList = document.querySelector("#favoriteList");
 const startQuizBtn = document.querySelector("#startQuizBtn");
 const wrongBookBtn = document.querySelector("#wrongBookBtn");
+const sprintModeBtn = document.querySelector("#sprintModeBtn");
 const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
 const showAnswerBtn = document.querySelector("#showAnswerBtn");
 const favoriteBtn = document.querySelector("#favoriteBtn");
@@ -117,15 +131,18 @@ async function init() {
 
 function bindEvents() {
   startQuizBtn.addEventListener("click", () => {
-    applyPreset("all");
+    startSession("mixed");
   });
 
   wrongBookBtn.addEventListener("click", () => {
-    loadNextQuestion(true);
-    scrollToPractice();
+    startSession("wrong");
   });
 
-  nextQuestionBtn.addEventListener("click", () => loadNextQuestion());
+  sprintModeBtn?.addEventListener("click", () => {
+    startSession("sprint");
+  });
+
+  nextQuestionBtn.addEventListener("click", () => loadNextQuestion(sessionState.onlyWrong));
   subjectFilter.addEventListener("change", () => {
     syncQuickSwitch(subjectFilter.value);
     renderChapterFilterOptions();
@@ -182,8 +199,42 @@ function applyPreset(subject) {
   syncQuickSwitch(subject);
   renderChapterFilterOptions();
   chapterFilter.value = "all";
+  sessionState.mode = subject === "all" ? "mixed" : subject;
+  syncSessionQueue();
   loadNextQuestion();
   scrollToPractice();
+}
+
+function startSession(mode) {
+  if (mode === "wrong") {
+    sessionState.mode = "wrong";
+    sessionState.onlyWrong = true;
+    sessionState.done = 0;
+    sessionState.correct = 0;
+    syncSessionQueue();
+    loadNextQuestion(true);
+    scrollToPractice();
+    return;
+  }
+
+  sessionState.onlyWrong = false;
+  sessionState.done = 0;
+  sessionState.correct = 0;
+
+  if (mode === "sprint") {
+    sessionState.mode = "sprint";
+    subjectFilter.value = "all";
+    levelFilter.value = "master";
+    syncQuickSwitch("all");
+    renderChapterFilterOptions();
+    chapterFilter.value = "all";
+    syncSessionQueue();
+    loadNextQuestion();
+    scrollToPractice();
+    return;
+  }
+
+  applyPreset("all");
 }
 
 function startChapterRun(subject, chapterId) {
@@ -192,6 +243,11 @@ function startChapterRun(subject, chapterId) {
   syncQuickSwitch(subject);
   renderChapterFilterOptions();
   chapterFilter.value = chapterId;
+  sessionState.mode = "chapter";
+  sessionState.onlyWrong = false;
+  sessionState.done = 0;
+  sessionState.correct = 0;
+  syncSessionQueue();
   loadNextQuestion();
   scrollToPractice();
 }
@@ -203,6 +259,11 @@ function startMockRun(subject) {
   renderChapterFilterOptions();
   chapterFilter.value = "all";
   pinnedQuestionId = "";
+  sessionState.mode = "sprint";
+  sessionState.onlyWrong = false;
+  sessionState.done = 0;
+  sessionState.correct = 0;
+  syncSessionQueue();
   loadNextQuestion();
   scrollToPractice();
 }
@@ -216,9 +277,18 @@ function openQuestionById(id) {
   syncQuickSwitch(question.subject);
   renderChapterFilterOptions();
   chapterFilter.value = question.chapterId;
+  sessionState.mode = "review";
+  sessionState.onlyWrong = false;
+  syncSessionQueue();
   queueCount.textContent = `当前题库 ${getQuestionQueue(false).length} 题`;
   renderQuestion(question);
   scrollToPractice();
+}
+
+function syncSessionQueue() {
+  const queue = getQuestionQueue(sessionState.onlyWrong);
+  sessionState.total = queue.length;
+  updateSessionPanel();
 }
 
 function syncQuickSwitch(subject) {
@@ -437,6 +507,9 @@ function loadNextQuestion(onlyWrong = false) {
 
   const queue = getQuestionQueue(onlyWrong);
   queueCount.textContent = `当前题库 ${queue.length} 题`;
+  sessionState.total = queue.length;
+  sessionState.onlyWrong = onlyWrong;
+  updateSessionPanel();
   feedback.classList.add("hidden");
   feedback.innerHTML = "";
   answerLocked = false;
@@ -447,6 +520,7 @@ function loadNextQuestion(onlyWrong = false) {
     questionText.textContent = onlyWrong
       ? "你的错题本现在是空的，继续刷新题更划算。"
       : "当前筛选条件下没有题，换个科目或难度继续。";
+    chapterHint.textContent = onlyWrong ? "错题暂时清空，可以回到混刷模式。" : "切换筛选后再开一轮。";
     options.innerHTML = "";
     updateFavoriteButton();
     return;
@@ -468,7 +542,9 @@ function renderQuestion(question) {
   currentQuestion = question;
   questionBadge.textContent = `${getLabel(currentQuestion)} · ${currentQuestion.chapterName}`;
   questionText.innerHTML = currentQuestion.prompt;
+  chapterHint.textContent = `${currentQuestion.linkName} · ${currentQuestion.answerType} · ${currentQuestion.source || "章节题"}`;
   updateFavoriteButton();
+  animateQuestionStage();
 
   options.innerHTML = currentQuestion.options
     .map(
@@ -507,8 +583,10 @@ function revealAnswer(selectedKeys, forcedReveal) {
 
   if (!forcedReveal) {
     state.asked += 1;
+    sessionState.done += 1;
     if (correct) {
       state.correct += 1;
+      sessionState.correct += 1;
       state.xp += getLevel(currentQuestion) === "master" ? 24 : getLevel(currentQuestion) === "advanced" ? 16 : 10;
       addMastered(currentQuestion.id);
       removeWrong(currentQuestion.id);
@@ -528,9 +606,10 @@ function revealAnswer(selectedKeys, forcedReveal) {
 
   persistState();
   renderDashboard();
+  updateSessionPanel();
 
   if (!forcedReveal && state.autoNext) {
-    window.setTimeout(() => loadNextQuestion(), 900);
+    window.setTimeout(() => loadNextQuestion(sessionState.onlyWrong), 900);
   }
 }
 
@@ -620,6 +699,33 @@ function updateFavoriteButton() {
 
 function stripHtml(text) {
   return String(text).replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+function updateSessionPanel() {
+  if (!sessionModeText) return;
+  const modeMap = {
+    mixed: "双科混刷",
+    wrong: "错题肃清",
+    sprint: "冲刺模式",
+    chapter: "章节定点",
+    review: "回看复盘",
+    politics: "主攻政治",
+    english: "主攻英语",
+  };
+  const progress = sessionState.total ? Math.min(100, Math.round((sessionState.done / sessionState.total) * 100)) : 0;
+  const accuracy = sessionState.done ? Math.round((sessionState.correct / sessionState.done) * 100) : 0;
+  sessionModeText.textContent = modeMap[sessionState.mode] || "双科混刷";
+  sessionProgressText.textContent = `${sessionState.done} / ${sessionState.total}`;
+  sessionAccuracyText.textContent = `${accuracy}%`;
+  if (sessionProgressBar) sessionProgressBar.style.width = `${progress}%`;
+}
+
+function animateQuestionStage() {
+  if (!questionStage) return;
+  questionStage.classList.remove("is-entering");
+  window.requestAnimationFrame(() => {
+    questionStage.classList.add("is-entering");
+  });
 }
 
 function renderReviewButtons(ids, className) {

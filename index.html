@@ -31,9 +31,22 @@
           <p class="hero-text">
             已接入你账号里的政治、英语真实题库。打开就能刷章节、练错题、切冲刺。
           </p>
-          <div class="hero-actions">
-            <button id="startQuizBtn" class="primary-btn">立即开刷</button>
-            <button id="wrongBookBtn" class="ghost-btn">重练错题</button>
+          <div class="hero-actions action-deck">
+            <button id="startQuizBtn" class="action-card action-card-primary" type="button">
+              <span class="action-kicker">极速模式</span>
+              <strong>立即开刷</strong>
+              <small>随机混刷，直接进题</small>
+            </button>
+            <button id="wrongBookBtn" class="action-card" type="button">
+              <span class="action-kicker">回炉模式</span>
+              <strong>重练错题</strong>
+              <small>只抓薄弱题，快速补洞</small>
+            </button>
+            <button id="sprintModeBtn" class="action-card" type="button">
+              <span class="action-kicker">冲刺模式</span>
+              <strong>模拟冲分</strong>
+              <small>高难题优先，节奏更快</small>
+            </button>
           </div>
           <div class="quick-switches">
             <button id="jumpAllBtn" class="quick-switch is-active" type="button">双科混刷</button>
@@ -145,12 +158,35 @@
           </aside>
 
           <section class="quiz-card">
+            <div class="session-strip">
+              <div>
+                <span class="mini-label">本轮模式</span>
+                <strong id="sessionModeText">双科混刷</strong>
+              </div>
+              <div>
+                <span class="mini-label">本轮进度</span>
+                <strong id="sessionProgressText">0 / 0</strong>
+              </div>
+              <div>
+                <span class="mini-label">本轮正确</span>
+                <strong id="sessionAccuracyText">0%</strong>
+              </div>
+            </div>
+            <div class="session-meter">
+              <div id="sessionProgressBar" class="session-meter-fill"></div>
+            </div>
             <div class="quiz-meta">
               <span id="questionBadge">政治 · 新手热身</span>
               <span class="quiz-meta-soft">点击选项后立即判定</span>
             </div>
-            <h3 id="questionText">准备开始刷题。</h3>
-            <div id="options" class="options"></div>
+            <div id="questionStage" class="question-stage">
+              <div class="card-shell">
+                <div class="card-glow"></div>
+                <h3 id="questionText">准备开始刷题。</h3>
+                <p id="chapterHint" class="chapter-hint">建议先从一题热身开始。</p>
+                <div id="options" class="options"></div>
+              </div>
+            </div>
             <div id="feedback" class="feedback hidden"></div>
             <div class="quiz-actions">
               <button id="favoriteBtn" class="ghost-btn" type="button">收藏本题</button>
