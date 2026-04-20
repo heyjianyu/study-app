@@ -198,6 +198,7 @@ select,
 
 .hero-actions,
 .quiz-actions,
+.focus-actions,
 .quick-switches,
 .section-heading,
 .practice-sidebar,
@@ -218,6 +219,21 @@ select,
 .hero-actions {
   margin-top: 22px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.hero-brief {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.brief-unit,
+.brief-sep {
+  color: var(--muted);
 }
 
 .action-deck {
@@ -455,7 +471,7 @@ select,
 }
 
 .practice-layout {
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
   align-items: start;
 }
 
@@ -547,6 +563,8 @@ select,
 
 .practice-sidebar {
   gap: 12px;
+  position: sticky;
+  top: 14px;
 }
 
 .filter-card,
@@ -609,6 +627,11 @@ select {
   padding: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 255, 0.94));
+}
+
+.focus-actions {
+  margin-top: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .session-strip {
@@ -852,6 +875,17 @@ select {
   color: var(--muted);
 }
 
+.review-grid-inline {
+  margin-top: 18px;
+  gap: 12px;
+}
+
+.review-grid-inline .review-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-soft);
+}
+
 .review-action {
   cursor: pointer;
 }
@@ -882,12 +916,16 @@ select {
   .hero-actions {
     grid-template-columns: 1fr;
   }
+
+  .practice-sidebar {
+    position: static;
+  }
 }
 
 @media (max-width: 720px) {
   .app-shell {
     width: min(100% - 16px, 1180px);
-    padding-top: 12px;
+    padding-top: 10px;
   }
 
   .hero,
@@ -903,16 +941,129 @@ select {
   .hero,
   .section,
   .quiz-card {
-    padding: 18px;
+    padding: 16px;
   }
 
   .hero-actions,
   .quick-switches,
-  .hero-highlights,
   .stat-grid,
   .level-meta,
-  .session-strip {
+  .session-strip,
+  .focus-actions,
+  .review-grid-inline {
     grid-template-columns: 1fr;
+  }
+
+  .hero {
+    gap: 14px;
+  }
+
+  .hero h1 {
+    margin-top: 10px;
+    font-size: clamp(1.85rem, 9vw, 2.4rem);
+  }
+
+  .hero-text {
+    margin-top: 10px;
+    line-height: 1.65;
+    font-size: 0.94rem;
+  }
+
+  .hero-actions {
+    margin-top: 16px;
+    gap: 10px;
+  }
+
+  .action-card {
+    min-height: auto;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .action-card strong {
+    font-size: 1.02rem;
+  }
+
+  .quick-switches {
+    margin-top: 12px;
+    gap: 8px;
+  }
+
+  .quick-switch,
+  select,
+  .option-btn,
+  .primary-btn,
+  .ghost-btn {
+    min-height: 46px;
+  }
+
+  .hero-brief {
+    margin-top: 10px;
+    font-size: 0.88rem;
+  }
+
+  .level-card,
+  .pulse-card,
+  .filter-card,
+  .review-card {
+    padding: 12px;
+  }
+
+  .stat-grid article,
+  .session-strip > div {
+    padding: 11px 12px;
+    border-radius: 16px;
+  }
+
+  .pulse-card p,
+  .overview-card p,
+  .chapter-hint {
+    line-height: 1.55;
+    font-size: 0.92rem;
+  }
+
+  .practice-zone .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .practice-sidebar {
+    gap: 10px;
+  }
+
+  .quiz-card {
+    padding: 14px;
+  }
+
+  .quiz-card h3 {
+    font-size: 1.02rem;
+    line-height: 1.6;
+  }
+
+  .question-stage {
+    margin-top: 12px;
+  }
+
+  .card-shell {
+    padding: 12px 12px 10px;
+    border-radius: 22px;
+  }
+
+  .options {
+    margin-top: 12px;
+    gap: 8px;
+  }
+
+  .option-btn {
+    padding: 11px 12px;
+    border-radius: 16px;
+  }
+
+  .feedback {
+    margin-top: 14px;
+    padding: 13px;
+    border-radius: 16px;
+    line-height: 1.65;
+    font-size: 0.93rem;
   }
 
   .primary-btn,
@@ -927,5 +1078,29 @@ select {
 
   .quiz-actions {
     grid-template-columns: 1fr;
+  }
+
+  .auto-next-toggle {
+    margin-top: 12px;
+    font-size: 0.9rem;
+  }
+
+  .review-grid-inline {
+    margin-top: 14px;
+  }
+
+  .review-list {
+    margin-top: 8px;
+  }
+
+  .live-chip,
+  .master-chip,
+  .wrong-chip {
+    width: 100%;
+    justify-content: flex-start;
+    margin: 6px 0 0;
+    padding: 9px 10px;
+    line-height: 1.45;
+    white-space: normal;
   }
 }

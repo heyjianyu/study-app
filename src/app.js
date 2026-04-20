@@ -7,7 +7,7 @@ const defaultState = {
   lastStudyDate: "",
   wrongBook: [],
   mastered: [],
-  autoNext: false,
+  autoNext: true,
 };
 
 const rankRules = [
@@ -22,9 +22,8 @@ let studyData = null;
 let allQuestions = [];
 let currentQuestion = null;
 let answerLocked = false;
-let pinnedQuestionId = "";
 let sessionState = {
-  mode: "mixed",
+  mode: "focus",
   total: 0,
   done: 0,
   correct: 0,
@@ -63,6 +62,8 @@ const masteredList = document.querySelector("#masteredList");
 const startQuizBtn = document.querySelector("#startQuizBtn");
 const wrongBookBtn = document.querySelector("#wrongBookBtn");
 const sprintModeBtn = document.querySelector("#sprintModeBtn");
+const focusWrongBtn = document.querySelector("#focusWrongBtn");
+const focusSprintBtn = document.querySelector("#focusSprintBtn");
 const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
 const showAnswerBtn = document.querySelector("#showAnswerBtn");
 const autoNextToggle = document.querySelector("#autoNextToggle");
@@ -89,6 +90,7 @@ async function init() {
     ...studyData.subjects.english.questions,
   ];
 
+  applyDefaultFocus();
   renderChapterFilterOptions();
   renderDashboard();
   loadNextQuestion();
@@ -106,6 +108,8 @@ function bindEvents() {
   sprintModeBtn?.addEventListener("click", () => {
     startSession("sprint");
   });
+  focusWrongBtn?.addEventListener("click", () => startSession("wrong"));
+  focusSprintBtn?.addEventListener("click", () => startSession("sprint"));
 
   nextQuestionBtn.addEventListener("click", () => loadNextQuestion(sessionState.onlyWrong));
   subjectFilter.addEventListener("change", () => {
@@ -132,6 +136,14 @@ function bindEvents() {
     state.autoNext = autoNextToggle.checked;
     persistState();
   });
+}
+
+function applyDefaultFocus() {
+  subjectFilter.value = "all";
+  levelFilter.value = state.wrongBook.length >= 8 ? "master" : "advanced";
+  chapterFilter.value = "all";
+  sessionState.mode = "focus";
+  sessionState.onlyWrong = false;
 }
 
 function bindInstallPrompt() {
@@ -191,7 +203,12 @@ function startSession(mode) {
     return;
   }
 
-  applyPreset("all");
+  applyDefaultFocus();
+  syncQuickSwitch("all");
+  renderChapterFilterOptions();
+  syncSessionQueue();
+  loadNextQuestion();
+  scrollToPractice();
 }
 
 function startChapterRun(subject, chapterId) {
@@ -215,7 +232,6 @@ function startMockRun(subject) {
   syncQuickSwitch(subject);
   renderChapterFilterOptions();
   chapterFilter.value = "all";
-  pinnedQuestionId = "";
   sessionState.mode = "sprint";
   sessionState.onlyWrong = false;
   sessionState.done = 0;
@@ -243,7 +259,7 @@ function openQuestionById(id) {
 }
 
 function syncSessionQueue() {
-  const queue = getQuestionQueue(sessionState.onlyWrong);
+  const queue = getPrioritizedQueue(sessionState.onlyWrong);
   sessionState.total = queue.length;
   updateSessionPanel();
 }
@@ -320,10 +336,26 @@ function getQuestionQueue(onlyWrong = false) {
   });
 }
 
+function getQuestionPriority(question, onlyWrong = false) {
+  const missRate = Math.max(0, 100 - (question.accuracy || 0));
+  const practiceWeight = Math.min(120000, question.practiceCount || 0) / 800;
+  const levelBonus =
+    getLevel(question) === "master" ? 26 : getLevel(question) === "advanced" ? 14 : 6;
+  const wrongBonus = state.wrongBook.includes(question.id) ? 22 : 0;
+  const sessionBonus = onlyWrong ? 40 : 0;
+  return missRate + practiceWeight + levelBonus + wrongBonus + sessionBonus;
+}
+
+function getPrioritizedQueue(onlyWrong = false) {
+  return [...getQuestionQueue(onlyWrong)].sort(
+    (left, right) => getQuestionPriority(right, onlyWrong) - getQuestionPriority(left, onlyWrong)
+  );
+}
+
 function loadNextQuestion(onlyWrong = false) {
   if (!studyData) return;
 
-  const queue = getQuestionQueue(onlyWrong);
+  const queue = getPrioritizedQueue(onlyWrong);
   queueCount.textContent = `当前题库 ${queue.length} 题`;
   sessionState.total = queue.length;
   sessionState.onlyWrong = onlyWrong;
@@ -343,16 +375,8 @@ function loadNextQuestion(onlyWrong = false) {
     return;
   }
 
-  if (pinnedQuestionId) {
-    const pinnedQuestion = queue.find((item) => item.id === pinnedQuestionId);
-    pinnedQuestionId = "";
-    if (pinnedQuestion) {
-      renderQuestion(pinnedQuestion);
-      return;
-    }
-  }
-
-  renderQuestion(queue[Math.floor(Math.random() * queue.length)]);
+  const topSlice = queue.slice(0, Math.min(queue.length, sessionState.mode === "sprint" ? 12 : 24));
+  renderQuestion(topSlice[Math.floor(Math.random() * topSlice.length)]);
 }
 
 function renderQuestion(question) {
@@ -448,8 +472,8 @@ function renderDashboard() {
   if (studyData) {
     planText.textContent =
       state.xp < 120
-        ? `先刷政治 ${studyData.totals.politicsQuestions} 题 + 英语 ${studyData.totals.englishQuestions} 题`
-        : "切整卷 + 错题回炉";
+        ? "先打高频高错题，再补薄弱章节"
+        : "先错题回炉，再冲高价值题";
 
     totalQuestionsText.textContent = `${studyData.totals.questions} 题`;
     totalMocksText.textContent = `${studyData.totals.politicsMocks + studyData.totals.englishMocks} 套`;
@@ -457,10 +481,10 @@ function renderDashboard() {
       state.wrongBook.length > 0
         ? `先回 ${Math.min(state.wrongBook.length, 20)} 道错题`
         : state.xp < 120
-          ? "双科章节热身"
-          : "开始整卷冲刺";
+          ? "高频高错优先"
+          : "高价值冲刺";
     paceText.textContent =
-      accuracy < 60 ? "先稳正确率" : accuracy < 80 ? "开始提速刷题" : "切整卷稳节奏";
+      accuracy < 60 ? "先稳正确率，保持连刷" : accuracy < 80 ? "连续刷高价值题" : "错题回练后整卷提速";
   } else {
     planText.textContent = "正在同步数据";
     totalQuestionsText.textContent = "同步中";
@@ -500,6 +524,7 @@ function updateSessionPanel() {
   if (!sessionModeText) return;
   const modeMap = {
     mixed: "双科混刷",
+    focus: "高价值优先",
     wrong: "错题肃清",
     sprint: "冲刺模式",
     chapter: "章节定点",

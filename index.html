@@ -53,19 +53,14 @@
             <button id="jumpPoliticsBtn" class="quick-switch" type="button">主攻政治</button>
             <button id="jumpEnglishBtn" class="quick-switch" type="button">主攻英语</button>
           </div>
-          <div class="hero-highlights">
-            <article class="hero-highlight">
-              <span>总题量</span>
-              <strong id="totalQuestionsText">加载中</strong>
-            </article>
-            <article class="hero-highlight">
-              <span>模拟卷</span>
-              <strong id="totalMocksText">加载中</strong>
-            </article>
-            <article class="hero-highlight">
-              <span>今天建议</span>
-              <strong id="focusModeText">准备同步</strong>
-            </article>
+          <div class="hero-brief">
+            <span id="totalQuestionsText">加载中</span>
+            <span class="brief-unit">题</span>
+            <span class="brief-sep">·</span>
+            <span id="totalMocksText">加载中</span>
+            <span class="brief-unit">套卷</span>
+            <span class="brief-sep">·</span>
+            <span id="focusModeText">准备同步</span>
           </div>
         </div>
 
@@ -120,9 +115,9 @@
         <div class="practice-layout">
           <aside class="practice-sidebar">
             <div class="filter-card overview-card">
-              <span class="mini-label">当前题库</span>
+              <span class="mini-label">聚焦题库</span>
               <strong id="queueCount">当前题库 0 题</strong>
-              <p>切好筛选，直接开刷。</p>
+              <p>默认先刷高价值题，回练和冲刺都在右侧一键切。</p>
             </div>
 
             <div class="filter-card">
@@ -157,7 +152,7 @@
             <div class="session-strip">
               <div>
                 <span class="mini-label">本轮模式</span>
-                <strong id="sessionModeText">双科混刷</strong>
+                <strong id="sessionModeText">高价值优先</strong>
               </div>
               <div>
                 <span class="mini-label">本轮进度</span>
@@ -173,7 +168,11 @@
             </div>
             <div class="quiz-meta">
               <span id="questionBadge">政治 · 新手热身</span>
-              <span class="quiz-meta-soft">点击选项后立即判定</span>
+              <span class="quiz-meta-soft">默认连续刷，点击选项即判定</span>
+            </div>
+            <div class="focus-actions">
+              <button id="focusWrongBtn" class="ghost-btn" type="button">回练错题</button>
+              <button id="focusSprintBtn" class="ghost-btn" type="button">连续冲刺</button>
             </div>
             <div id="questionStage" class="question-stage">
               <div class="card-shell">
@@ -192,24 +191,17 @@
               <input id="autoNextToggle" type="checkbox" />
               <span>答题后自动连刷下一题</span>
             </label>
+            <div class="review-grid review-grid-inline">
+              <article class="review-card">
+                <h3>错题回练</h3>
+                <div id="wrongBookList" class="review-list"></div>
+              </article>
+              <article class="review-card">
+                <h3>掌握题回看</h3>
+                <div id="masteredList" class="review-list"></div>
+              </article>
+            </div>
           </section>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-heading">
-          <p class="eyebrow">复盘</p>
-          <h2>错题本与掌握度</h2>
-        </div>
-        <div class="review-grid">
-          <article class="review-card">
-            <h3>错题本</h3>
-            <div id="wrongBookList" class="review-list"></div>
-          </article>
-          <article class="review-card">
-            <h3>已掌握</h3>
-            <div id="masteredList" class="review-list"></div>
-          </article>
         </div>
       </section>
     </main>
