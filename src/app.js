@@ -7,7 +7,6 @@ const defaultState = {
   lastStudyDate: "",
   wrongBook: [],
   mastered: [],
-  favorites: [],
   autoNext: false,
 };
 
@@ -16,29 +15,6 @@ const rankRules = [
   { maxXp: 239, name: "稳步上分", text: "你已经进入持续得分区间。" },
   { maxXp: 479, name: "进阶选手", text: "现在该用整章和整卷把正确率抬上去。" },
   { maxXp: Infinity, name: "冲刺学霸", text: "题感和节奏都到位了，重点只剩稳定发挥。" },
-];
-
-const roadmap = [
-  {
-    stage: "01",
-    name: "章节打底",
-    text: "先按课程树把政治和英语过一遍，用章节题把陌生知识点打成认识。",
-  },
-  {
-    stage: "02",
-    name: "高频刷透",
-    text: "从错题率和低正确率题切入，优先补薄弱章，形成稳定正确率。",
-  },
-  {
-    stage: "03",
-    name: "整卷提速",
-    text: "穿插模拟考试与历年真题，把时间感、顺序感和答题节奏练出来。",
-  },
-  {
-    stage: "04",
-    name: "冲刺闭环",
-    text: "回炉错题、重复高频题、整卷冲刺，最后只保留提分动作。",
-  },
 ];
 
 const state = loadState();
@@ -68,14 +44,9 @@ const totalQuestionsText = document.querySelector("#totalQuestionsText");
 const totalMocksText = document.querySelector("#totalMocksText");
 const focusModeText = document.querySelector("#focusModeText");
 const paceText = document.querySelector("#paceText");
-const courseBoard = document.querySelector("#courseBoard");
-const chapterHub = document.querySelector("#chapterHub");
-const mockHub = document.querySelector("#mockHub");
-const roadmapContainer = document.querySelector("#roadmap");
 const subjectFilter = document.querySelector("#subjectFilter");
 const levelFilter = document.querySelector("#levelFilter");
 const chapterFilter = document.querySelector("#chapterFilter");
-const tipList = document.querySelector("#tipList");
 const questionBadge = document.querySelector("#questionBadge");
 const queueCount = document.querySelector("#queueCount");
 const sessionModeText = document.querySelector("#sessionModeText");
@@ -89,13 +60,11 @@ const options = document.querySelector("#options");
 const feedback = document.querySelector("#feedback");
 const wrongBookList = document.querySelector("#wrongBookList");
 const masteredList = document.querySelector("#masteredList");
-const favoriteList = document.querySelector("#favoriteList");
 const startQuizBtn = document.querySelector("#startQuizBtn");
 const wrongBookBtn = document.querySelector("#wrongBookBtn");
 const sprintModeBtn = document.querySelector("#sprintModeBtn");
 const nextQuestionBtn = document.querySelector("#nextQuestionBtn");
 const showAnswerBtn = document.querySelector("#showAnswerBtn");
-const favoriteBtn = document.querySelector("#favoriteBtn");
 const autoNextToggle = document.querySelector("#autoNextToggle");
 const installAppBtn = document.querySelector("#installAppBtn");
 const jumpAllBtn = document.querySelector("#jumpAllBtn");
@@ -106,7 +75,6 @@ let deferredPrompt = null;
 init();
 
 async function init() {
-  renderRoadmap();
   renderDashboard();
   bindEvents();
   bindInstallPrompt();
@@ -121,9 +89,6 @@ async function init() {
     ...studyData.subjects.english.questions,
   ];
 
-  renderCourseBoard();
-  renderHubCards();
-  renderTips();
   renderChapterFilterOptions();
   renderDashboard();
   loadNextQuestion();
@@ -160,14 +125,6 @@ function bindEvents() {
     revealAnswer(currentQuestion.answer, true);
     addWrong(currentQuestion.id);
     persistState();
-    renderDashboard();
-  });
-
-  favoriteBtn?.addEventListener("click", () => {
-    if (!currentQuestion) return;
-    toggleFavorite(currentQuestion.id);
-    persistState();
-    updateFavoriteButton();
     renderDashboard();
   });
 
@@ -306,145 +263,6 @@ function scrollToPractice() {
   document.querySelector(".practice-zone")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderRoadmap() {
-  if (!roadmapContainer) return;
-  roadmapContainer.innerHTML = roadmap
-    .map(
-      (item) => `
-        <article class="timeline-step">
-          <span>${item.stage}</span>
-          <h3>${item.name}</h3>
-          <p>${item.text}</p>
-        </article>
-      `
-    )
-    .join("");
-}
-
-function renderCourseBoard() {
-  if (!courseBoard) return;
-  const cards = Object.values(studyData.subjects).map((subject) => {
-    const moduleList = subject.modules
-      .map(
-        (module) => `
-          <article>
-            <strong>${module.name}</strong>
-            <div class="course-meta">${module.exerNum} 题 · ${module.children.length} 章</div>
-          </article>
-        `
-      )
-      .join("");
-
-    const mockList = subject.mocks
-      .slice(0, 6)
-      .map((exam) => `<span class="live-chip">${exam.title} · ${exam.exerNum} 题</span>`)
-      .join("");
-
-    return `
-      <article class="course-card">
-        <header>
-          <div>
-            <h3>${subject.courseName}</h3>
-            <p class="course-meta">有效期至 ${subject.validUntil} · 章节题 ${subject.totalQuestions} 道 · 模拟卷 ${subject.mocks.length} 套</p>
-          </div>
-          <span class="course-tag">${subject.label}</span>
-        </header>
-        <div class="course-summary">
-          <article>
-            <div class="module-count">模块总览</div>
-            <strong>${subject.moduleCount} 组模块</strong>
-            <div>章节总数 ${subject.modules.reduce((sum, item) => sum + item.children.length, 0)} 章</div>
-          </article>
-          <article>
-            <div class="module-count">模拟考试</div>
-            <strong>${subject.mocks.length} 套</strong>
-            <div>${mockList}</div>
-          </article>
-          <article>
-            <div class="module-count">学习提醒</div>
-            <div>${subject.reminders.map((item) => `<div>• ${item}</div>`).join("")}</div>
-          </article>
-          ${moduleList}
-        </div>
-      </article>
-    `;
-  });
-
-  courseBoard.innerHTML = cards.join("");
-}
-
-function renderHubCards() {
-  if (!chapterHub || !mockHub) return;
-  const chapterCards = Object.entries(studyData.subjects).map(([key, subject]) => {
-    const firstChapter = getAvailableChapters(key)[0];
-    return `
-      <article class="hub-card">
-        <p class="mini-label">${subject.label}章节入口</p>
-        <h3>${subject.courseName}</h3>
-        <p>${getAvailableChapters(key).length} 个可刷章节 · ${subject.totalQuestions} 道题</p>
-        <div class="hub-meta">
-          <span>${firstChapter?.name || "等待补齐章节"}</span>
-          <span>${firstChapter?.exerNum || 0} 题</span>
-        </div>
-        <button class="primary-btn hub-btn" data-action="chapter" data-subject="${key}" data-chapter="${firstChapter?.id || ""}">开始本章</button>
-      </article>
-    `;
-  });
-
-  const mockCards = Object.entries(studyData.subjects).map(([key, subject]) => `
-    <article class="hub-card soft-card">
-      <p class="mini-label">${subject.label}模拟卷</p>
-      <h3>${subject.mocks[0]?.title || `${subject.label}模拟卷`}</h3>
-      <p>${subject.mocks.length} 套卷单已同步，可以先从卷单切入冲刺模式。</p>
-      <div class="hub-list">
-        ${subject.mocks.slice(0, 3).map((mock) => `<span class="live-chip">${mock.title}</span>`).join("")}
-      </div>
-      <div class="mock-list collapsed" id="mock-list-${key}">
-        ${subject.mocks
-          .map(
-            (mock) => `
-              <button class="mock-item" type="button" data-action="mock" data-subject="${key}">
-                <strong>${mock.title}</strong>
-                <span>${mock.type || "模拟卷"} · ${mock.exerNum} 题 · ${mock.totalScore} 分</span>
-              </button>
-            `
-          )
-          .join("")}
-      </div>
-      <div class="hub-actions">
-        <button class="ghost-btn hub-btn" data-action="toggle-mocks" data-target="mock-list-${key}">展开卷单</button>
-        <button class="primary-btn hub-btn" data-action="mock" data-subject="${key}">冲刺模式</button>
-      </div>
-    </article>
-  `);
-
-  chapterHub.innerHTML = chapterCards.join("");
-  mockHub.innerHTML = mockCards.join("");
-
-  document.querySelectorAll(".hub-btn").forEach((button) => {
-    button.addEventListener("click", () => {
-      const { action, subject, chapter } = button.dataset;
-      if (action === "chapter" && chapter) startChapterRun(subject, chapter);
-      if (action === "mock") startMockRun(subject);
-      if (action === "toggle-mocks") {
-        const target = document.getElementById(button.dataset.target);
-        const collapsed = target?.classList.toggle("collapsed");
-        button.textContent = collapsed ? "展开卷单" : "收起卷单";
-      }
-    });
-  });
-}
-
-function renderTips() {
-  const tips = [
-    `当前真题总量 ${studyData.totals.questions} 道，先用章节题建立框架。`,
-    `政治章节题 ${studyData.totals.politicsQuestions} 道，政治模拟卷 ${studyData.totals.politicsMocks} 套。`,
-    `英语章节题 ${studyData.totals.englishQuestions} 道，英语模拟卷 ${studyData.totals.englishMocks} 套。`,
-    "先刷章节题，再冲模拟卷，最后回炉错题，这是效率最高的闭环。",
-  ];
-  tipList.innerHTML = tips.map((tip) => `<li>${tip}</li>`).join("");
-}
-
 function renderChapterFilterOptions() {
   if (!studyData) return;
   const subject = subjectFilter.value;
@@ -522,7 +340,6 @@ function loadNextQuestion(onlyWrong = false) {
       : "当前筛选条件下没有题，换个科目或难度继续。";
     chapterHint.textContent = onlyWrong ? "错题暂时清空，可以回到混刷模式。" : "切换筛选后再开一轮。";
     options.innerHTML = "";
-    updateFavoriteButton();
     return;
   }
 
@@ -543,7 +360,6 @@ function renderQuestion(question) {
   questionBadge.textContent = `${getLabel(currentQuestion)} · ${currentQuestion.chapterName}`;
   questionText.innerHTML = currentQuestion.prompt;
   chapterHint.textContent = `${currentQuestion.linkName} · ${currentQuestion.answerType} · ${currentQuestion.source || "章节题"}`;
-  updateFavoriteButton();
   animateQuestionStage();
 
   options.innerHTML = currentQuestion.options
@@ -661,10 +477,6 @@ function renderDashboard() {
     ? renderReviewButtons(state.mastered, "master-chip")
     : "还没有掌握题，先开始第一轮。";
 
-  favoriteList.innerHTML = state.favorites.length
-    ? renderReviewButtons(state.favorites, "live-chip")
-    : "收藏几道高频题，后面回看更快。";
-
   bindReviewActions();
 }
 
@@ -678,23 +490,6 @@ function removeWrong(id) {
 
 function addMastered(id) {
   if (!state.mastered.includes(id)) state.mastered.unshift(id);
-}
-
-function toggleFavorite(id) {
-  if (state.favorites.includes(id)) {
-    state.favorites = state.favorites.filter((item) => item !== id);
-    return;
-  }
-  state.favorites.unshift(id);
-}
-
-function updateFavoriteButton() {
-  if (!favoriteBtn) return;
-  if (!currentQuestion) {
-    favoriteBtn.textContent = "收藏本题";
-    return;
-  }
-  favoriteBtn.textContent = state.favorites.includes(currentQuestion.id) ? "取消收藏" : "收藏本题";
 }
 
 function stripHtml(text) {

@@ -342,7 +342,7 @@ select,
 }
 
 .hero-highlight {
-  padding: 16px;
+  padding: 13px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.66);
 }
@@ -355,8 +355,8 @@ select,
 
 .hero-highlight strong {
   display: block;
-  margin-top: 10px;
-  font-size: 1.32rem;
+  margin-top: 8px;
+  font-size: 1.12rem;
 }
 
 .hero-panel {
@@ -411,15 +411,15 @@ select,
 }
 
 .stat-grid article {
-  padding: 16px;
+  padding: 13px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.7);
 }
 
 .stat-grid strong {
   display: block;
-  margin-top: 8px;
-  font-size: 1.36rem;
+  margin-top: 6px;
+  font-size: 1.18rem;
 }
 
 .pulse-card {
@@ -455,7 +455,7 @@ select,
 }
 
 .practice-layout {
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   align-items: start;
 }
 
@@ -561,29 +561,29 @@ select,
 .review-card,
 .course-card,
 .timeline-step {
-  padding: 18px;
+  padding: 14px;
 }
 
 .overview-card strong {
   display: block;
-  margin-top: 10px;
-  font-size: 1.4rem;
+  margin-top: 8px;
+  font-size: 1.18rem;
 }
 
 .overview-card p {
-  margin: 10px 0 0;
+  margin: 8px 0 0;
   color: var(--muted);
-  line-height: 1.75;
+  line-height: 1.6;
 }
 
 .filter-card label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 select {
   width: 100%;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 16px;
   border: 1px solid var(--line-strong);
   color: var(--text);
@@ -606,7 +606,7 @@ select {
 }
 
 .quiz-card {
-  padding: 22px;
+  padding: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(243, 248, 255, 0.94));
 }
@@ -618,7 +618,7 @@ select {
 }
 
 .session-strip > div {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-radius: 16px;
   background: rgba(232, 240, 255, 0.72);
   border: 1px solid rgba(43, 111, 255, 0.08);
@@ -847,8 +847,8 @@ select {
 }
 
 .review-list {
-  min-height: 62px;
-  margin-top: 14px;
+  min-height: 42px;
+  margin-top: 10px;
   color: var(--muted);
 }
 
